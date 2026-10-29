@@ -41,4 +41,13 @@ describe("TranscriptionSettings", () => {
 		expect(useTranscriptionStore.getState().autoTranscribe).toBe(false);
 		expect(loadUserPreferences().autoTranscribe).toBe(false);
 	});
+
+	it("turns it back on and saves the choice", () => {
+		useTranscriptionStore.setState({ autoTranscribe: false });
+		renderSection();
+		fireEvent.click(screen.getByTestId("auto-transcribe-toggle"));
+		expect(screen.getByTestId("auto-transcribe-toggle")).toHaveAttribute("aria-pressed", "true");
+		expect(useTranscriptionStore.getState().autoTranscribe).toBe(true);
+		expect(loadUserPreferences().autoTranscribe).toBe(true);
+	});
 });

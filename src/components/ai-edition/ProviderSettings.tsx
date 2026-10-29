@@ -185,7 +185,7 @@ function ProviderSettings({ open, onClose }: ProviderSettingsProps) {
 						activeProvider={snapshot?.config?.provider ?? null}
 						onPick={openForm}
 					/>
-					<TranscriptionSettings open={open} />
+					<TranscriptionSettings />
 					<McpServerSettings open={open} />
 				</>
 			) : active ? (

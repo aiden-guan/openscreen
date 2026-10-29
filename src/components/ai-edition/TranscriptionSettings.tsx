@@ -2,28 +2,18 @@
 // background as soon as it lands in a project. The first run downloads the
 // Whisper model from huggingface.co, so this switch is also what keeps the app
 // off the network for someone who never asks for a transcript (issue #1419).
-// The preference is machine-wide (userPreferences), not per project.
+// The preference is machine-wide (userPreferences), not per project; the
+// transcription store owns it, so this reads and writes it there.
 
-import { useEffect, useState } from "react";
 import { useScopedT } from "@/contexts/I18nContext";
 import { useTranscriptionStore } from "@/lib/ai-edition/store/transcriptionStore";
-import { loadUserPreferences } from "@/lib/userPreferences";
 import { ToggleField } from "./McpServerSettings";
 import styles from "./NewEditorShell.module.css";
 
-export function TranscriptionSettings({ open }: { open: boolean }) {
+export function TranscriptionSettings() {
 	const te = useScopedT("editor");
-	const [autoTranscribe, setAutoTranscribe] = useState(() => loadUserPreferences().autoTranscribe);
-
-	useEffect(() => {
-		if (open) setAutoTranscribe(loadUserPreferences().autoTranscribe);
-	}, [open]);
-
-	const toggle = () => {
-		const next = !autoTranscribe;
-		useTranscriptionStore.getState().setAutoTranscribe(next);
-		setAutoTranscribe(next);
-	};
+	const autoTranscribe = useTranscriptionStore((s) => s.autoTranscribe);
+	const setAutoTranscribe = useTranscriptionStore((s) => s.setAutoTranscribe);
 
 	return (
 		<section
@@ -45,7 +35,7 @@ export function TranscriptionSettings({ open }: { open: boolean }) {
 					testId="auto-transcribe-toggle"
 					on={autoTranscribe}
 					disabled={false}
-					onToggle={toggle}
+					onToggle={() => setAutoTranscribe(!autoTranscribe)}
 				/>
 			</div>
 		</section>

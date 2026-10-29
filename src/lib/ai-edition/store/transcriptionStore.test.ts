@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toastText } from "@/i18n/toastText";
-import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
+import { loadUserPreferences } from "@/lib/userPreferences";
 import type { AxcutDocument, AxcutTranscript } from "../schema";
 import { answerMcpHostRequest } from "./mcpDocumentHost";
 import { useProjectStore } from "./projectStore";
@@ -108,6 +108,7 @@ function loadDocument(document: AxcutDocument) {
 describe("useTranscriptionStore", () => {
 	beforeEach(() => {
 		useTranscriptionStore.getState().reset();
+		useTranscriptionStore.setState({ autoTranscribe: true });
 		useProjectStore.getState().clear();
 		bridgeMocks.save.mockReset();
 		// The bridge echoes back whatever it was handed, like a successful save.
@@ -534,7 +535,7 @@ describe("useTranscriptionStore", () => {
 
 	describe("with automatic transcription off (#1419)", () => {
 		beforeEach(() => {
-			saveUserPreferences({ autoTranscribe: false });
+			useTranscriptionStore.setState({ autoTranscribe: false });
 		});
 
 		it("queues nothing in the background, so the model is never fetched unasked", async () => {
@@ -586,6 +587,21 @@ describe("useTranscriptionStore", () => {
 			expect(loadUserPreferences().autoTranscribe).toBe(true);
 			expect(transcribeMocks.transcribeAsset).toHaveBeenCalledTimes(2);
 		});
+	});
+
+	it("stays off when the preference cannot be saved", async () => {
+		const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+			throw new DOMException("quota exceeded", "QuotaExceededError");
+		});
+		loadDocument(makeDoc(["asset_1"]));
+
+		useTranscriptionStore.getState().setAutoTranscribe(false);
+		useTranscriptionStore.getState().sync(useProjectStore.getState().document);
+		await whenTranscriptionIdle();
+		setItem.mockRestore();
+
+		expect(loadUserPreferences().autoTranscribe).toBe(true);
+		expect(transcribeMocks.transcribeAsset).not.toHaveBeenCalled();
 	});
 
 	it("turning it off stops the background pass but keeps what the user asked for", async () => {

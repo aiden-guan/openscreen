@@ -1,53 +1,44 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
-import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
-
-const store = vi.hoisted(() => ({ setAutoTranscribe: vi.fn() }));
-
-vi.mock("@/lib/ai-edition/store/transcriptionStore", () => ({
-	useTranscriptionStore: { getState: () => store },
-}));
-
+import { useTranscriptionStore } from "@/lib/ai-edition/store/transcriptionStore";
+import { loadUserPreferences } from "@/lib/userPreferences";
 import { TranscriptionSettings } from "./TranscriptionSettings";
 
 function renderSection() {
 	return render(
 		<I18nProvider>
-			<TranscriptionSettings open />
+			<TranscriptionSettings />
 		</I18nProvider>,
 	);
 }
 
 describe("TranscriptionSettings", () => {
-	beforeEach(() => {
-		store.setAutoTranscribe.mockReset();
-	});
 	afterEach(() => {
 		cleanup();
+		useTranscriptionStore.setState({ autoTranscribe: true });
 		localStorage.clear();
 	});
 
-	it("shows automatic transcription on by default", () => {
+	it("shows automatic transcription on by default, and says what it downloads", () => {
 		renderSection();
 		expect(screen.getByTestId("auto-transcribe-toggle")).toHaveAttribute("aria-pressed", "true");
 		expect(screen.getByText(/huggingface\.co/)).toBeInTheDocument();
 	});
 
-	it("reflects the saved preference", () => {
-		saveUserPreferences({ autoTranscribe: false });
+	it("reflects the store's value", () => {
+		useTranscriptionStore.setState({ autoTranscribe: false });
 		renderSection();
 		expect(screen.getByTestId("auto-transcribe-toggle")).toHaveAttribute("aria-pressed", "false");
 	});
 
-	it("hands the switch to the transcription store", () => {
+	it("turns it off and saves the choice", () => {
 		renderSection();
 		fireEvent.click(screen.getByTestId("auto-transcribe-toggle"));
-		expect(store.setAutoTranscribe).toHaveBeenCalledWith(false);
 		expect(screen.getByTestId("auto-transcribe-toggle")).toHaveAttribute("aria-pressed", "false");
-		// Persisting is the store's job; the section only asks it.
-		expect(loadUserPreferences().autoTranscribe).toBe(true);
+		expect(useTranscriptionStore.getState().autoTranscribe).toBe(false);
+		expect(loadUserPreferences().autoTranscribe).toBe(false);
 	});
 });

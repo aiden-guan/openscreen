@@ -81,6 +81,11 @@ interface TranscriptionState {
 	/** Project the jobs belong to — switching projects drops them all. */
 	projectId: string | null;
 	jobs: Record<string, TranscriptionJob>;
+	/**
+	 * Whether `sync` runs the background pass. Seeded from the saved preference and kept
+	 * here, not re-read from storage, so a write that failed cannot quietly turn it back on.
+	 */
+	autoTranscribe: boolean;
 
 	/** Reconcile the queue with a document. Idempotent; safe to call on every document change. */
 	sync: (document: AxcutDocument | null) => void;
@@ -123,6 +128,7 @@ const toastText = (key: string, vars?: Record<string, string | number>) =>
 export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 	projectId: null,
 	jobs: {},
+	autoTranscribe: loadUserPreferences().autoTranscribe,
 
 	sync(document) {
 		if (!document) {
@@ -148,7 +154,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 			if (!assetIds.has(assetId)) delete patch()[assetId];
 		}
 
-		if (hasLocalSttEngine() && loadUserPreferences().autoTranscribe) {
+		if (hasLocalSttEngine() && get().autoTranscribe) {
 			for (const asset of document.assets) {
 				if (jobs[asset.id]) continue;
 				if (findAssetTranscript(document, asset.id)) continue;
@@ -221,6 +227,7 @@ export const useTranscriptionStore = create<TranscriptionState>((set, get) => ({
 	},
 
 	setAutoTranscribe(enabled) {
+		set({ autoTranscribe: enabled });
 		saveUserPreferences({ autoTranscribe: enabled });
 		if (enabled) {
 			get().sync(useProjectStore.getState().document);

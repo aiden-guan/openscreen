@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/contexts/I18nContext";
 import { useTranscriptionStore } from "@/lib/ai-edition/store/transcriptionStore";
-import { loadUserPreferences } from "@/lib/userPreferences";
+import { loadUserPreferences, saveUserPreferences } from "@/lib/userPreferences";
 import { TranscriptionSettings } from "./TranscriptionSettings";
 
 function renderSection() {
@@ -43,6 +43,8 @@ describe("TranscriptionSettings", () => {
 	});
 
 	it("turns it back on and saves the choice", () => {
+		// Saved as off too, so the check below cannot pass on the default alone.
+		saveUserPreferences({ autoTranscribe: false });
 		useTranscriptionStore.setState({ autoTranscribe: false });
 		renderSection();
 		fireEvent.click(screen.getByTestId("auto-transcribe-toggle"));
